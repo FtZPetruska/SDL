@@ -19,39 +19,21 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef SDL_config_h_
-#define SDL_config_h_
+#include "../../SDL_internal.h"
+#include "../SDL_thread_c.h"
 
-#include "SDL_platform.h"
+#include <3ds.h>
 
-/**
- *  \file SDL_config.h
- */
+SDL_TLSData *
+SDL_SYS_GetTLSData(void)
+{
+    return SDL_Generic_GetTLSData();
+}
 
-/* Add any platform that doesn't build using the configure system. */
-#if defined(__WIN32__)
-#include "SDL_config_windows.h"
-#elif defined(__WINRT__)
-#include "SDL_config_winrt.h"
-#elif defined(__MACOSX__)
-#include "SDL_config_macosx.h"
-#elif defined(__IPHONEOS__)
-#include "SDL_config_iphoneos.h"
-#elif defined(__ANDROID__)
-#include "SDL_config_android.h"
-#elif defined(__PSP__)
-#include "SDL_config_psp.h"
-#elif defined(__OS2__)
-#include "SDL_config_os2.h"
-#elif defined(__3DS__)
-#include "SDL_config_n3ds.h"
-#else
-/* This is a minimal configuration just to get SDL running on new platforms. */
-#include "SDL_config_minimal.h"
-#endif /* platform config */
+int
+SDL_SYS_SetTLSData(SDL_TLSData *data)
+{
+    return SDL_Generic_SetTLSData(data);
+}
 
-#ifdef USING_GENERATED_CONFIG_H
-#error Wrong SDL_config.h, check your include path?
-#endif
-
-#endif /* SDL_config_h_ */
+/* vi: set ts=4 sw=4 expandtab: */

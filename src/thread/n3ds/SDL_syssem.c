@@ -20,65 +20,14 @@
 */
 #include "../../SDL_internal.h"
 
-/* An implementation of semaphores using mutexes and condition variables */
+/* An implementation of semaphores using libctru's LightSemaphore */
 
-#include "SDL_timer.h"
+#include <3ds.h>
 #include "SDL_thread.h"
-#include "SDL_systhread_c.h"
-
-
-#if SDL_THREADS_DISABLED
-
-SDL_sem *
-SDL_CreateSemaphore(Uint32 initial_value)
-{
-    SDL_SetError("SDL not built with thread support");
-    return (SDL_sem *) 0;
-}
-
-void
-SDL_DestroySemaphore(SDL_sem * sem)
-{
-}
-
-int
-SDL_SemTryWait(SDL_sem * sem)
-{
-    return SDL_SetError("SDL not built with thread support");
-}
-
-int
-SDL_SemWaitTimeout(SDL_sem * sem, Uint32 timeout)
-{
-    return SDL_SetError("SDL not built with thread support");
-}
-
-int
-SDL_SemWait(SDL_sem * sem)
-{
-    return SDL_SetError("SDL not built with thread support");
-}
-
-Uint32
-SDL_SemValue(SDL_sem * sem)
-{
-    return 0;
-}
-
-int
-SDL_SemPost(SDL_sem * sem)
-{
-    return SDL_SetError("SDL not built with thread support");
-}
-
-#else
 
 struct SDL_semaphore
 {
-    Uint32 count;
-    Uint32 waiters_count;
-    SDL_mutex *count_lock;
-    SDL_cond *count_nonzero;
+    LightSemaphore semaphore;
 };
 
 SDL_sem *
@@ -91,15 +40,7 @@ SDL_CreateSemaphore(Uint32 initial_value)
         SDL_OutOfMemory();
         return NULL;
     }
-    sem->count = initial_value;
-    sem->waiters_count = 0;
-
-    sem->count_lock = SDL_CreateMutex();
-    sem->count_nonzero = SDL_CreateCond();
-    if (!sem->count_lock || !sem->count_nonzero) {
-        SDL_DestroySemaphore(sem);
-        return NULL;
-    }
+    LightSemaphore_Init(&sem->semaphore, initial_value, 255);
 
     return sem;
 }
@@ -111,17 +52,6 @@ void
 SDL_DestroySemaphore(SDL_sem * sem)
 {
     if (sem) {
-        sem->count = 0xFFFFFFFF;
-        while (sem->waiters_count > 0) {
-            SDL_CondSignal(sem->count_nonzero);
-            SDL_Delay(10);
-        }
-        SDL_DestroyCond(sem->count_nonzero);
-        if (sem->count_lock) {
-            SDL_LockMutex(sem->count_lock);
-            SDL_UnlockMutex(sem->count_lock);
-            SDL_DestroyMutex(sem->count_lock);
-        }
         SDL_free(sem);
     }
 }
@@ -129,21 +59,11 @@ SDL_DestroySemaphore(SDL_sem * sem)
 int
 SDL_SemTryWait(SDL_sem * sem)
 {
-    int retval;
-
     if (!sem) {
         return SDL_SetError("Passed a NULL semaphore");
     }
 
-    retval = SDL_MUTEX_TIMEDOUT;
-    SDL_LockMutex(sem->count_lock);
-    if (sem->count > 0) {
-        --sem->count;
-        retval = 0;
-    }
-    SDL_UnlockMutex(sem->count_lock);
-
-    return retval;
+    return SDL_SemWaitTimeout(sem, 0);;
 }
 
 int
@@ -155,23 +75,20 @@ SDL_SemWaitTimeout(SDL_sem * sem, Uint32 timeout)
         return SDL_SetError("Passed a NULL semaphore");
     }
 
-    /* A timeout of 0 is an easy case */
-    if (timeout == 0) {
-        return SDL_SemTryWait(sem);
+    if (timeout == SDL_MUTEX_MAXWAIT) {
+        LightSemaphore_Acquire(&sem->semaphore, 1);
+        retval = 0;
+    } else if (timeout == 0) {
+        int return_code = LightSemaphore_TryAcquire(&sem->semaphore, 1);
+        retval = return_code != 0 ? SDL_MUTEX_TIMEDOUT : 0;
+    } else {
+        int return_code = LightSemaphore_TryAcquire(&sem->semaphore, 1);
+        if(return_code != 0) {
+            svcSleepThread((s64)timeout * 1000000LL);
+            return_code = LightSemaphore_TryAcquire(&sem->semaphore, 1);
+        }
+        retval = return_code != 0 ? SDL_MUTEX_TIMEDOUT : 0;
     }
-
-    SDL_LockMutex(sem->count_lock);
-    ++sem->waiters_count;
-    retval = 0;
-    while ((sem->count == 0) && (retval != SDL_MUTEX_TIMEDOUT)) {
-        retval = SDL_CondWaitTimeout(sem->count_nonzero,
-                                     sem->count_lock, timeout);
-    }
-    --sem->waiters_count;
-    if (retval == 0) {
-        --sem->count;
-    }
-    SDL_UnlockMutex(sem->count_lock);
 
     return retval;
 }
@@ -185,15 +102,10 @@ SDL_SemWait(SDL_sem * sem)
 Uint32
 SDL_SemValue(SDL_sem * sem)
 {
-    Uint32 value;
-
-    value = 0;
-    if (sem) {
-        SDL_LockMutex(sem->count_lock);
-        value = sem->count;
-        SDL_UnlockMutex(sem->count_lock);
+    if (!sem) {
+        return SDL_SetError("Passed a NULL semaphore");
     }
-    return value;
+    return sem->semaphore.current_count;
 }
 
 int
@@ -202,16 +114,8 @@ SDL_SemPost(SDL_sem * sem)
     if (!sem) {
         return SDL_SetError("Passed a NULL semaphore");
     }
-
-    SDL_LockMutex(sem->count_lock);
-    if (sem->waiters_count > 0) {
-        SDL_CondSignal(sem->count_nonzero);
-    }
-    ++sem->count;
-    SDL_UnlockMutex(sem->count_lock);
-
+    LightSemaphore_Release(&sem->semaphore, 1);
     return 0;
 }
 
-#endif /* SDL_THREADS_DISABLED */
 /* vi: set ts=4 sw=4 expandtab: */

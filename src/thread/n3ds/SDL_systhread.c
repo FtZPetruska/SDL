@@ -72,24 +72,15 @@ SDL_SYS_SetupThread(const char *name)
 SDL_threadID
 SDL_ThreadID(void)
 {
-    //Incompatible with SDL API, this function will NOT return
-	//a valid thread ID when called from the main thread.
     u32 thread_ID = 0;
-    Thread current_thread = threadGetCurrent();
-    if(current_thread) {
-        Handle thread_handle = threadGetHandle(current_thread);
-        svcGetThreadId(&thread_ID, thread_handle);
-    }
-    
+    svcGetThreadId(&thread_ID, CUR_THREAD_HANDLE);
     return (SDL_threadID)thread_ID;
 }
 
 int
 SDL_SYS_SetThreadPriority(SDL_ThreadPriority priority)
 {
-    Thread current_thread = threadGetCurrent();
-    Handle thread_handle = threadGetHandle(current_thread);
-    return (int)svcSetThreadPriority(thread_handle, priority);
+    return (int)svcSetThreadPriority(CUR_THREAD_HANDLE, priority);
 }
 
 void

@@ -20,17 +20,16 @@
 */
 #include "../../SDL_internal.h"
 
-/* An implementation of mutexes using semaphores */
+/* An implementation of semaphores using libctru's RecursiveLock */
 
+#include <3ds.h>
 #include "SDL_thread.h"
 #include "SDL_systhread_c.h"
 
 
 struct SDL_mutex
 {
-    int recursive;
-    SDL_threadID owner;
-    SDL_sem *sem;
+    RecursiveLock lock;
 };
 
 /* Create a mutex */
@@ -42,14 +41,7 @@ SDL_CreateMutex(void)
     /* Allocate mutex memory */
     mutex = (SDL_mutex *) SDL_malloc(sizeof(*mutex));
     if (mutex) {
-        /* Create the mutex semaphore, with initial value 1 */
-        mutex->sem = SDL_CreateSemaphore(1);
-        mutex->recursive = 0;
-        mutex->owner = 0;
-        if (!mutex->sem) {
-            SDL_free(mutex);
-            mutex = NULL;
-        }
+        RecursiveLock_Init(&mutex->lock);
     } else {
         SDL_OutOfMemory();
     }
@@ -61,9 +53,6 @@ void
 SDL_DestroyMutex(SDL_mutex * mutex)
 {
     if (mutex) {
-        if (mutex->sem) {
-            SDL_DestroySemaphore(mutex->sem);
-        }
         SDL_free(mutex);
     }
 }
@@ -72,94 +61,37 @@ SDL_DestroyMutex(SDL_mutex * mutex)
 int
 SDL_LockMutex(SDL_mutex * mutex)
 {
-#if SDL_THREADS_DISABLED
-    return 0;
-#else
-    SDL_threadID this_thread;
-
     if (mutex == NULL) {
         return SDL_SetError("Passed a NULL mutex");
     }
 
-    this_thread = SDL_ThreadID();
-    if (mutex->owner == this_thread) {
-        ++mutex->recursive;
-    } else {
-        /* The order of operations is important.
-           We set the locking thread id after we obtain the lock
-           so unlocks from other threads will fail.
-         */
-        SDL_SemWait(mutex->sem);
-        mutex->owner = this_thread;
-        mutex->recursive = 0;
-    }
+    RecursiveLock_Lock(&mutex->lock);
 
     return 0;
-#endif /* SDL_THREADS_DISABLED */
 }
 
 /* try Lock the mutex */
 int
 SDL_TryLockMutex(SDL_mutex * mutex)
 {
-#if SDL_THREADS_DISABLED
-    return 0;
-#else
-    int retval = 0;
-    SDL_threadID this_thread;
-
     if (mutex == NULL) {
         return SDL_SetError("Passed a NULL mutex");
     }
 
-    this_thread = SDL_ThreadID();
-    if (mutex->owner == this_thread) {
-        ++mutex->recursive;
-    } else {
-        /* The order of operations is important.
-         We set the locking thread id after we obtain the lock
-         so unlocks from other threads will fail.
-         */
-        retval = SDL_SemWait(mutex->sem);
-        if (retval == 0) {
-            mutex->owner = this_thread;
-            mutex->recursive = 0;
-        }
-    }
-
-    return retval;
-#endif /* SDL_THREADS_DISABLED */
+    return RecursiveLock_TryLock(&mutex->lock);
 }
 
 /* Unlock the mutex */
 int
 SDL_mutexV(SDL_mutex * mutex)
 {
-#if SDL_THREADS_DISABLED
-    return 0;
-#else
     if (mutex == NULL) {
         return SDL_SetError("Passed a NULL mutex");
     }
 
-    /* If we don't own the mutex, we can't unlock it */
-    if (SDL_ThreadID() != mutex->owner) {
-        return SDL_SetError("mutex not owned by this thread");
-    }
+    RecursiveLock_Unlock(&mutex->lock);
 
-    if (mutex->recursive) {
-        --mutex->recursive;
-    } else {
-        /* The order of operations is important.
-           First reset the owner so another thread doesn't lock
-           the mutex and set the ownership before we reset it,
-           then release the lock semaphore.
-         */
-        mutex->owner = 0;
-        SDL_SemPost(mutex->sem);
-    }
     return 0;
-#endif /* SDL_THREADS_DISABLED */
 }
 
 /* vi: set ts=4 sw=4 expandtab: */

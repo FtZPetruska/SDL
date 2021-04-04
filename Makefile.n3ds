@@ -20,7 +20,7 @@ SOURCES 	:= \
 			src \
 			src/atomic \
 			src/audio \
-			src/audio/n3ds \
+			src/audio/dummy \
 			src/cpuinfo \
 			src/events \
 			src/file \
@@ -36,7 +36,7 @@ SOURCES 	:= \
 			src/render/software \
 			src/stdlib \
 			src/thread \
-			src/thread/generic \
+			src/thread/n3ds \
 			src/timer \
 			src/timer/n3ds \
 			src/video \

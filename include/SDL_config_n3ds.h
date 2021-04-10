@@ -137,8 +137,7 @@
 
 #define SDL_VIDEO_RENDER_SW 1
 
-/* !!! FIXME: what does N3DS do for filesystem stuff? */
-#define SDL_FILESYSTEM_DUMMY 1
+#define SDL_FILESYSTEM_N3DS 1
 
 /* N3DS doesn't have haptic device (src/haptic/dummy/\*.c) */
 #define SDL_HAPTIC_DISABLED 1

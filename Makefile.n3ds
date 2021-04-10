@@ -31,7 +31,7 @@ SOURCES 	:= \
 			src/loadso/dummy \
 			src/power \
 			src/power/n3ds \
-			src/filesystem/dummy \
+			src/filesystem/n3ds \
 			src/render \
 			src/render/software \
 			src/stdlib \

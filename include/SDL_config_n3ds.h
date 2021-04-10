@@ -125,13 +125,7 @@
 //#define SDL_AUDIO_DRIVER_N3DS 1
 #define SDL_AUDIO_DUMMY 1
 
-/* Threads are currently not supported
- * It is probably due to the fact that
- * we cannot get the ThreadID of the
- * main thread, breaking the TLS functions
-**/
 #define SDL_THREAD_N3DS 1
-//#define SDL_THREADS_DISABLED 1
 
 #define SDL_JOYSTICK_N3DS 1
 

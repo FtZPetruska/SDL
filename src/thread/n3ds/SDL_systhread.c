@@ -25,11 +25,11 @@
 #include "SDL_thread.h"
 #include "../SDL_systhread.h"
 
-#define STACKSIZE       (128 * 1024)
+static const size_t DEFAULT_STACK_SIZE = (128 * 1024);
 
 static void ThreadEntry(void *arg)
 {
-	SDL_RunThread(arg);
+	SDL_RunThread((SDL_Thread *) arg);
 }
 
 #ifdef SDL_PASSED_BEGINTHREAD_ENDTHREAD
@@ -51,15 +51,16 @@ SDL_SYS_CreateThread(SDL_Thread * thread)
 	else priority = 0x19; //priority 0x18 is for video thread that is activated by a signal and than must run at maximum priority to avoid flickering
 	if(priority>0x2F) priority = 0x2F;
 
-	thread->handle = threadCreate(ThreadEntry, thread,
-		STACKSIZE, priority, -2, false);
+    size_t stack_size = thread->stacksize ? thread->stacksize : DEFAULT_STACK_SIZE;
 
-	thread->threadid = (int) thread->handle;
-	if (!thread->threadid)
-	{
-	SDL_SetError("Create Thread failed");
-	return(-1);
-	}
+	thread->handle = threadCreate(ThreadEntry, thread,
+		stack_size, priority, -2, false);
+
+    if(!thread->handle) 
+    {
+        return SDL_SetError("Couldn't create thread");
+    }
+
     return 0;
 }
 

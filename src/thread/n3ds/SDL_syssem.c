@@ -63,7 +63,7 @@ SDL_SemTryWait(SDL_sem * sem)
         return SDL_SetError("Passed a NULL semaphore");
     }
 
-    return SDL_SemWaitTimeout(sem, 0);;
+    return SDL_SemWaitTimeout(sem, 0);
 }
 
 int
@@ -78,14 +78,16 @@ SDL_SemWaitTimeout(SDL_sem * sem, Uint32 timeout)
     if (timeout == SDL_MUTEX_MAXWAIT) {
         LightSemaphore_Acquire(&sem->semaphore, 1);
         retval = 0;
-    } else if (timeout == 0) {
-        int return_code = LightSemaphore_TryAcquire(&sem->semaphore, 1);
-        retval = return_code != 0 ? SDL_MUTEX_TIMEDOUT : 0;
     } else {
         int return_code = LightSemaphore_TryAcquire(&sem->semaphore, 1);
         if(return_code != 0) {
-            svcSleepThread((s64)timeout * 1000000LL);
-            return_code = LightSemaphore_TryAcquire(&sem->semaphore, 1);
+            for(u32 i = 0; i < timeout; i++){
+                svcSleepThread(1000000LL);
+                return_code = LightSemaphore_TryAcquire(&sem->semaphore, 1);
+                if (return_code == 0) {
+                    break;
+                }
+            }
         }
         retval = return_code != 0 ? SDL_MUTEX_TIMEDOUT : 0;
     }

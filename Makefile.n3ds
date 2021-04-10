@@ -72,7 +72,7 @@ LIBDIRS	:=	$(CTRULIB)
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 #---------------------------------------------------------------------------------
 
-export OUTPUT	:=	lib$(TARGET).a
+export OUTPUT	:=	$(CURDIR)/lib/lib$(TARGET).a
 
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 			$(foreach dir,$(DATA),$(CURDIR)/$(dir))

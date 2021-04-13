@@ -122,21 +122,13 @@
 
 #define LACKS_SYS_MMAN_H 1
 
-//#define SDL_AUDIO_DRIVER_N3DS 1
-#define SDL_AUDIO_DUMMY 1
-
+#define SDL_AUDIO_DRIVER_N3DS 1
 #define SDL_THREAD_N3DS 1
-
 #define SDL_JOYSTICK_N3DS 1
-
 #define SDL_TIMER_N3DS 1
-
 #define SDL_POWER_N3DS 1
-
 #define SDL_VIDEO_DRIVER_N3DS 1
-
 #define SDL_VIDEO_RENDER_SW 1
-
 #define SDL_FILESYSTEM_N3DS 1
 
 /* N3DS doesn't have haptic device (src/haptic/dummy/\*.c) */

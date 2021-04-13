@@ -20,7 +20,7 @@ SOURCES 	:= \
 			src \
 			src/atomic \
 			src/audio \
-			src/audio/dummy \
+			src/audio/n3ds \
 			src/cpuinfo \
 			src/events \
 			src/file \

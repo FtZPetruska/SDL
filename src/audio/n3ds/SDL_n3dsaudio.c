@@ -295,22 +295,14 @@ N3DSAUDIO_CloseDevice(_THIS)
 static void
 N3DSAUDIO_ThreadInit(_THIS)
 {
-    Thread current_thread = threadGetCurrent();
-    Handle thread_handle;
     s32 current_priority;
-    if(current_thread){
-        thread_handle = threadGetHandle(current_thread);
-    }
-    else{
-        thread_handle = CUR_THREAD_HANDLE;
-    }
-    svcGetThreadPriority(&current_priority, thread_handle);
+    svcGetThreadPriority(&current_priority, CUR_THREAD_HANDLE);
 
     if(current_priority>0x19) current_priority--;
 	else current_priority = 0x19; //priority 0x18 is for video thread that is activated by a signal and than must run at maximum priority to avoid flickering
 	if(current_priority>0x2F) current_priority = 0x2F;
 
-    svcSetThreadPriority(thread_handle, current_priority);
+    svcSetThreadPriority(CUR_THREAD_HANDLE, current_priority);
 }
 
 static int
@@ -328,13 +320,9 @@ N3DSAUDIO_Init(SDL_AudioDriverImpl * impl)
 
     impl->OnlyHasDefaultOutputDevice = 1;
 
-    /* We lack a working implementation of threads */
-    impl->ProvidesOwnCallbackThread = true;
-    impl->SkipMixerLock = true;
-
-    /* Should be possible with the 3DS's microphone */
-    //impl->HasCaptureSupport = 1;
-    //impl->CaptureFromDevice = N3DSAUDIO_CaptureFromDevice;
+    /* Should be possible using MIC service */
+    impl->HasCaptureSupport = 0;
+    impl->CaptureFromDevice = N3DSAUDIO_CaptureFromDevice;
 
     return 1;   /* this audio target is available. */
 }

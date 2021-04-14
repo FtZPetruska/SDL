@@ -22,20 +22,28 @@
 
 #if SDL_VIDEO_DRIVER_N3DS
 
-/* Being a null driver, there's no event stream. We just define stubs for
-   most of the API. */
+/* Pumping the events for the Home and Power button as well as touchscreen. */
 
 #include "../../events/SDL_events_c.h"
 
-#include "SDL_n3dsvideo.h"
 #include "SDL_n3dsevents_c.h"
+#include "SDL_n3dsvideo.h"
 
-void
-N3DS_PumpEvents(_THIS)
+void N3DS_PumpEvents (_THIS)
 {
-    /* do nothing. */
+    svcSleepThread (100000); // 0.1 ms
+
+    hidScanInput ();
+    u32 kDown = hidKeysDown ();
+
+    if (kDown & KEY_START)
+        {
+            SDL_Event sdlevent;
+            sdlevent.type = SDL_QUIT;
+            SDL_PushEvent (&sdlevent);
+        }
 }
 
 #endif /* SDL_VIDEO_DRIVER_N3DS */
 
-/* vi: set ts=4 sw=4 expandtab: */
+/* clang-format -style={BasedOnStyle: GNU, IndentWidth: 4, ColumnLimit: 79} */

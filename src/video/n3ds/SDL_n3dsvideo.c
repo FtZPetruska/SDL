@@ -22,73 +22,65 @@
 
 #if SDL_VIDEO_DRIVER_N3DS
 
-/* Dummy SDL video driver implementation; this is just enough to make an
- *  SDL-based application THINK it's got a working video driver, for
- *  applications that call SDL_Init(SDL_INIT_VIDEO) when they don't need it,
- *  and also for use as a collection of stubs when porting SDL to a new
- *  platform for which you haven't yet written a valid video driver.
- *
- * This is also a great way to determine bottlenecks: if you think that SDL
- *  is a performance problem for a given platform, enable this driver, and
- *  then see if your application runs faster without video overhead.
- *
- * Initial work by Ryan C. Gordon (icculus@icculus.org). A good portion
- *  of this was cut-and-pasted from Stephane Peter's work in the AAlib
- *  SDL video driver.  Renamed to "N3DS" by Sam Lantinga.
- */
-
-#include "SDL_video.h"
-#include "SDL_mouse.h"
-#include "../SDL_sysvideo.h"
-#include "../SDL_pixels_c.h"
 #include "../../events/SDL_events_c.h"
+#include "../SDL_pixels_c.h"
+#include "../SDL_sysvideo.h"
+#include "SDL_mouse.h"
+#include "SDL_video.h"
 
-#include "SDL_n3dsvideo.h"
 #include "SDL_n3dsevents_c.h"
 #include "SDL_n3dsframebuffer_c.h"
+#include "SDL_n3dsvideo.h"
 
-#define N3DSVID_DRIVER_NAME "N3DS"
+#include <citro3d.h>
 
-/* Initialization/Query functions */
-static int N3DS_VideoInit(_THIS);
-static int N3DS_SetDisplayMode(_THIS, SDL_VideoDisplay * display, SDL_DisplayMode * mode);
-static void N3DS_VideoQuit(_THIS);
+#define N3DSVID_DRIVER_NAME "n3ds"
+
+typedef struct
+{
+    float dpi;
+} SDL_DisplayData;
+
+static int N3DS_VideoInit (_THIS);
+static int N3DS_SetDisplayMode (_THIS, SDL_VideoDisplay *display,
+                                SDL_DisplayMode *mode);
+static void N3DS_VideoQuit (_THIS);
+static int N3DS_GetDisplayDPI (_THIS, SDL_VideoDisplay *sdl_display,
+                               float *ddpi, float *hdpi, float *vdpi);
 
 /* N3DS driver bootstrap functions */
 
 static int
-N3DS_Available(void)
+N3DS_Available (void)
 {
-    const char *envr = SDL_getenv("SDL_VIDEODRIVER");
-    if ((envr) && (SDL_strcmp(envr, N3DSVID_DRIVER_NAME) == 0)) {
-        return (1);
-    }
-
-    return (0);
+    return (1); // Always available
 }
 
 static void
-N3DS_DeleteDevice(SDL_VideoDevice * device)
+N3DS_DeleteDevice (SDL_VideoDevice *device)
 {
-    SDL_free(device);
+    SDL_free (device->displays);
+    SDL_free (device->driverdata);
+    SDL_free (device);
 }
 
 static SDL_VideoDevice *
-N3DS_CreateDevice(int devindex)
+N3DS_CreateDevice (int devindex)
 {
     SDL_VideoDevice *device;
 
-    if (!N3DS_Available()) {
-        return (0);
-    }
+    if (!N3DS_Available ())
+        {
+            return (0);
+        }
 
     /* Initialize all variables that we clean on shutdown */
-    device = (SDL_VideoDevice *) SDL_calloc(1, sizeof(SDL_VideoDevice));
-    if (!device) {
-        SDL_OutOfMemory();
-        return (0);
-    }
-    device->is_dummy = SDL_TRUE;
+    device = (SDL_VideoDevice *)SDL_calloc (1, sizeof (SDL_VideoDevice));
+    if (!device)
+        {
+            SDL_OutOfMemory ();
+            return (0);
+        }
 
     /* Set the function pointers */
     device->VideoInit = N3DS_VideoInit;
@@ -99,50 +91,132 @@ N3DS_CreateDevice(int devindex)
     device->UpdateWindowFramebuffer = SDL_N3DS_UpdateWindowFramebuffer;
     device->DestroyWindowFramebuffer = SDL_N3DS_DestroyWindowFramebuffer;
 
+    device->GetDisplayDPI = N3DS_GetDisplayDPI;
+
     device->free = N3DS_DeleteDevice;
 
     return device;
 }
 
-VideoBootStrap N3DS_bootstrap = {
-    N3DSVID_DRIVER_NAME, "SDL dummy video driver",
-    N3DS_CreateDevice
-};
+VideoBootStrap N3DS_bootstrap
+    = { N3DSVID_DRIVER_NAME, "N3DS Video Driver", N3DS_CreateDevice };
 
-
-int
-N3DS_VideoInit(_THIS)
+int N3DS_VideoInit (_THIS)
 {
-    SDL_DisplayMode mode;
+    gfxInit (GSP_RGBA8_OES, GSP_RGBA8_OES, false);
+    gfxSet3D (false);
+    C3D_Init (C3D_DEFAULT_CMDBUF_SIZE);
 
-    /* Use a fake 32-bpp desktop mode */
-    mode.format = SDL_PIXELFORMAT_RGB888;
-    mode.w = 1024;
-    mode.h = 768;
-    mode.refresh_rate = 0;
-    mode.driverdata = NULL;
-    if (SDL_AddBasicVideoDisplay(&mode) < 0) {
-        return -1;
-    }
+    SDL_VideoDisplay top_display;
+    SDL_VideoDisplay bottom_display;
 
-    SDL_zero(mode);
-    SDL_AddDisplayMode(&_this->displays[0], &mode);
+    SDL_DisplayMode top_mode;
+    SDL_DisplayMode bottom_mode;
+
+    SDL_zero (top_display);
+    SDL_zero (bottom_display);
+    SDL_zero (top_mode);
+    SDL_zero (bottom_mode);
+
+    SDL_DisplayData *top_data
+        = (SDL_DisplayData *)SDL_calloc (1, sizeof (SDL_DisplayData));
+    if (!top_data)
+        {
+            return SDL_OutOfMemory ();
+        }
+
+    SDL_DisplayData *bottom_data
+        = (SDL_DisplayData *)SDL_calloc (1, sizeof (SDL_DisplayData));
+    if (!bottom_data)
+        {
+            SDL_free (top_data);
+            return SDL_OutOfMemory ();
+        }
+
+    cfguInit ();
+    u8 n3ds_model;
+    CFGU_GetSystemModel (&n3ds_model);
+    switch (n3ds_model)
+        {
+        case (CFG_MODEL_3DS):
+        case (CFG_MODEL_2DS):
+            top_data->dpi = 132.1f;
+            bottom_data->dpi = 132.4f;
+            break;
+        case (CFG_MODEL_N3DS):
+            top_data->dpi = 120.2f;
+            bottom_data->dpi = 120.1f;
+            break;
+        case (CFG_MODEL_3DSXL):
+        case (CFG_MODEL_N3DSXL):
+        case (CFG_MODEL_N2DSXL):
+            top_data->dpi = 95.5f;
+            bottom_data->dpi = 95.6f;
+            break;
+        }
+    cfguExit ();
+
+    top_mode.w = GSP_SCREEN_HEIGHT_TOP;
+    top_mode.h = GSP_SCREEN_WIDTH;
+    top_mode.refresh_rate = 60;
+    top_mode.format = SDL_PIXELFORMAT_RGBA8888;
+    top_mode.driverdata = NULL;
+
+    top_display.desktop_mode = top_mode;
+    top_display.current_mode = top_mode;
+    top_display.driverdata = (void *)top_data;
+
+    bottom_mode.w = GSP_SCREEN_HEIGHT_BOTTOM;
+    bottom_mode.h = GSP_SCREEN_WIDTH;
+    bottom_mode.refresh_rate = 60;
+    bottom_mode.format = SDL_PIXELFORMAT_RGBA8888;
+    bottom_mode.driverdata = NULL;
+
+    bottom_display.desktop_mode = bottom_mode;
+    bottom_display.current_mode = bottom_mode;
+    bottom_display.driverdata = (void *)bottom_data;
+
+    SDL_AddVideoDisplay (&top_display, SDL_FALSE);
+    SDL_AddVideoDisplay (&bottom_display, SDL_FALSE);
 
     /* We're done! */
     return 0;
 }
 
 static int
-N3DS_SetDisplayMode(_THIS, SDL_VideoDisplay * display, SDL_DisplayMode * mode)
+N3DS_SetDisplayMode (_THIS, SDL_VideoDisplay *display, SDL_DisplayMode *mode)
 {
     return 0;
 }
 
-void
-N3DS_VideoQuit(_THIS)
+void N3DS_VideoQuit (_THIS)
 {
+    C3D_Fini ();
+    gfxExit ();
+}
+
+static int
+N3DS_GetDisplayDPI (_THIS, SDL_VideoDisplay *sdl_display, float *ddpi,
+                    float *hdpi, float *vdpi)
+{
+    SDL_DisplayData *data = (SDL_DisplayData *)sdl_display->driverdata;
+
+    if (ddpi)
+        {
+            *ddpi = data->dpi;
+        }
+    if (hdpi)
+        {
+            *hdpi = data->dpi;
+        }
+    if (vdpi)
+        {
+            *vdpi = data->dpi;
+        }
+
+    return data->dpi != 0.0f ? 0 : SDL_SetError ("Couldn't get DPI");
 }
 
 #endif /* SDL_VIDEO_DRIVER_N3DS */
 
-/* vi: set ts=4 sw=4 expandtab: */
+/* clang-format -style={BasedOnStyle: GNU, IndentWidth: 4, ColumnLimit: 79} */

@@ -31,7 +31,7 @@
 int SDL_N3DS_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format, void ** pixels, int *pitch)
 {
     SDL_Surface *surface;
-    const Uint32 surface_format = SDL_PIXELFORMAT_RGB888;
+    const Uint32 surface_format = SDL_PIXELFORMAT_ARGB8888;
     int w, h;
     int bpp;
     Uint32 Rmask, Gmask, Bmask, Amask;

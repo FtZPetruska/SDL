@@ -25,6 +25,8 @@
 
 #include "../SDL_sysvideo.h"
 
+#include <3ds.h>
+
 #endif /* SDL_n3dsvideo_h_ */
 
 /* vi: set ts=4 sw=4 expandtab: */

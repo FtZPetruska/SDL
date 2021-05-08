@@ -35,12 +35,18 @@ struct SDL_semaphore {
 SDL_sem *SDL_CreateSemaphore(Uint32 initial_value) {
   SDL_sem *sem;
 
+  if (initial_value > INT16_MAX) {
+    SDL_SetError("Initial semaphore value too high for this platform");
+    return NULL;
+  }
+
   sem = (SDL_sem *)SDL_malloc(sizeof(*sem));
   if (!sem) {
     SDL_OutOfMemory();
     return NULL;
   }
-  LightSemaphore_Init(&sem->semaphore, initial_value, 255);
+  
+  LightSemaphore_Init(&sem->semaphore, initial_value, INT16_MAX);
 
   return sem;
 }

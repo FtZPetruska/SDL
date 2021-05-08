@@ -18,35 +18,32 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "../../SDL_internal.h"
-
-#include <3ds.h>
 
 #ifndef _SDL_n3dsaudio_h
 #define _SDL_n3dsaudio_h
 
-#include "../SDL_sysaudio.h"
+#include <3ds.h>
 
 /* Hidden "this" pointer for the audio functions */
-#define _THIS   SDL_AudioDevice *this
+#define _THIS SDL_AudioDevice *this
 
-#define NUM_BUFFERS 2			/* -- Don't lower this! */
+#define NUM_BUFFERS 2 /* -- Don't lower this! */
 
 struct SDL_PrivateAudioData {
-	/* The file descriptor for the audio device */
-	Uint8 *mixbuf;
-	Uint32 mixlen;
-	Uint32 format;
-	Uint32 samplerate;
-	Uint32 channels;
-	Uint8  bytePerSample;
-	Uint32 isSigned;
-	Uint32 nextbuf;
-	ndspWaveBuf waveBuf[NUM_BUFFERS];
-	LightLock lock;
-    CondVar cv;
-    bool isCancelled;
+  /* The file descriptor for the audio device */
+  Uint8 *mixbuf;
+  Uint32 mixlen;
+  Uint32 format;
+  Uint32 samplerate;
+  Uint32 channels;
+  Uint8 bytePerSample;
+  Uint32 isSigned;
+  Uint32 nextbuf;
+  ndspWaveBuf waveBuf[NUM_BUFFERS];
+  LightLock lock;
+  CondVar cv;
+  bool isCancelled;
 };
 
 #endif /* _SDL_n3dsaudio_h */
-/* vi: set ts=4 sw=4 expandtab: */
+/* clang-format -style=Google */

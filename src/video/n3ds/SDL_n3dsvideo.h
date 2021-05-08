@@ -23,10 +23,10 @@
 #ifndef SDL_n3dsvideo_h_
 #define SDL_n3dsvideo_h_
 
-#include "../SDL_sysvideo.h"
-
 #include <3ds.h>
+
+#include "../SDL_sysvideo.h"
 
 #endif /* SDL_n3dsvideo_h_ */
 
-/* vi: set ts=4 sw=4 expandtab: */
+/* clang-format -style=Google */

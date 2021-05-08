@@ -20,67 +20,58 @@
 */
 #include "../../SDL_internal.h"
 
+#ifdef SDL_THREAD_N3DS
+
 /* An implementation of semaphores using libctru's CondVar */
 
-#include <3ds.h>
-#include "SDL_thread.h"
 #include "SDL_sysmutex_c.h"
+#include "SDL_thread.h"
 
-
-typedef struct SDL_cond
-{
-    CondVar cond_variable;
+typedef struct SDL_cond {
+  CondVar cond_variable;
 } SDL_cond;
 
 /* Create a condition variable */
-SDL_cond *
-SDL_CreateCond(void)
-{
-    SDL_cond *cond;
+SDL_cond *SDL_CreateCond(void) {
+  SDL_cond *cond;
 
-    cond = (SDL_cond *) SDL_malloc(sizeof(SDL_cond));
-    if (cond) {
-        CondVar_Init(&cond->cond_variable);
-    } else {
-        SDL_OutOfMemory();
-    }
-    return cond;
+  cond = (SDL_cond *)SDL_malloc(sizeof(SDL_cond));
+  if (cond) {
+    CondVar_Init(&cond->cond_variable);
+  } else {
+    SDL_OutOfMemory();
+  }
+  return cond;
 }
 
 /* Destroy a condition variable */
-void
-SDL_DestroyCond(SDL_cond * _cond)
-{
-    SDL_cond *cond = (SDL_cond *)_cond;
-    if (cond) {
-        SDL_free(cond);
-    }
+void SDL_DestroyCond(SDL_cond *_cond) {
+  SDL_cond *cond = (SDL_cond *)_cond;
+  if (cond) {
+    SDL_free(cond);
+  }
 }
 
 /* Restart one of the threads that are waiting on the condition variable */
-int
-SDL_CondSignal(SDL_cond * _cond)
-{
-    SDL_cond *cond = (SDL_cond *)_cond;
-    if (!cond) {
-        return SDL_SetError("Passed a NULL condition variable");
-    }
+int SDL_CondSignal(SDL_cond *_cond) {
+  SDL_cond *cond = (SDL_cond *)_cond;
+  if (!cond) {
+    return SDL_SetError("Passed a NULL condition variable");
+  }
 
-    CondVar_Signal(&cond->cond_variable);
-    return 0;
+  CondVar_Signal(&cond->cond_variable);
+  return 0;
 }
 
 /* Restart all threads that are waiting on the condition variable */
-int
-SDL_CondBroadcast(SDL_cond * _cond)
-{
-    SDL_cond *cond = (SDL_cond *)_cond;
-    if (!cond) {
-        return SDL_SetError("Passed a NULL condition variable");
-    }
+int SDL_CondBroadcast(SDL_cond *_cond) {
+  SDL_cond *cond = (SDL_cond *)_cond;
+  if (!cond) {
+    return SDL_SetError("Passed a NULL condition variable");
+  }
 
-    CondVar_Broadcast(&cond->cond_variable);
-    return 0;
+  CondVar_Broadcast(&cond->cond_variable);
+  return 0;
 }
 
 /* Wait on the condition variable for at most 'ms' milliseconds.
@@ -104,39 +95,38 @@ Thread B:
     SDL_CondSignal(cond);
     SDL_UnlockMutex(lock);
  */
-int
-SDL_CondWaitTimeout(SDL_cond * _cond, SDL_mutex * mutex, Uint32 ms)
-{
-    SDL_cond *cond = (SDL_cond *)_cond;
+int SDL_CondWaitTimeout(SDL_cond *_cond, SDL_mutex *mutex, Uint32 ms) {
+  SDL_cond *cond = (SDL_cond *)_cond;
 
-    if (!cond) {
-        return SDL_SetError("Passed a NULL condition variable");
-    }
-    if (!mutex) {
-        return SDL_SetError("Passed a NULL mutex");
-    }
-    
-    RecursiveLock rl_backup = mutex->rl;
-    mutex->rl.thread_tag = 0;
-    mutex->rl.counter = 0;
+  if (!cond) {
+    return SDL_SetError("Passed a NULL condition variable");
+  }
+  if (!mutex) {
+    return SDL_SetError("Passed a NULL mutex");
+  }
 
-    Result res = 0;
-    if (ms == SDL_MUTEX_MAXWAIT)
-        CondVar_Wait(&cond->cond_variable, &mutex->rl.lock);
-    else
-        res = CondVar_WaitTimeout(&cond->cond_variable, &mutex->rl.lock, (s64)ms * 1000000LL);
+  RecursiveLock rl_backup = mutex->rl;
+  mutex->rl.thread_tag = 0;
+  mutex->rl.counter = 0;
 
-    mutex->rl.thread_tag = rl_backup.thread_tag;
-    mutex->rl.counter = rl_backup.counter;
+  Result res = 0;
+  if (ms == SDL_MUTEX_MAXWAIT)
+    CondVar_Wait(&cond->cond_variable, &mutex->rl.lock);
+  else
+    res = CondVar_WaitTimeout(&cond->cond_variable, &mutex->rl.lock,
+                              (s64)ms * 1000000LL);
 
-    return R_SUCCEEDED(res) ? 0 : SDL_MUTEX_TIMEDOUT;
+  mutex->rl.thread_tag = rl_backup.thread_tag;
+  mutex->rl.counter = rl_backup.counter;
+
+  return R_SUCCEEDED(res) ? 0 : SDL_MUTEX_TIMEDOUT;
 }
 
 /* Wait on the condition variable forever */
-int
-SDL_CondWait(SDL_cond * cond, SDL_mutex * mutex)
-{
-    return SDL_CondWaitTimeout(cond, mutex, SDL_MUTEX_MAXWAIT);
+int SDL_CondWait(SDL_cond *cond, SDL_mutex *mutex) {
+  return SDL_CondWaitTimeout(cond, mutex, SDL_MUTEX_MAXWAIT);
 }
 
-/* vi: set ts=4 sw=4 expandtab: */
+#endif /* SDL_THREAD_N3DS */
+
+/* clang-format -style=Google */

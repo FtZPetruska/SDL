@@ -23,11 +23,10 @@
 #define SDL_n3dsevents_c_h_
 
 #include "../../SDL_internal.h"
-
 #include "SDL_n3dsvideo.h"
 
 extern void N3DS_PumpEvents(_THIS);
 
 #endif /* SDL_n3dsevents_c_h_ */
 
-/* vi: set ts=4 sw=4 expandtab: */
+/* clang-format -style=Google */

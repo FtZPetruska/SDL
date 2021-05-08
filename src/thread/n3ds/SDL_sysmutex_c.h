@@ -19,13 +19,11 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 #include "SDL_config.h"
-
-#include "SDL_thread.h"
 #include "SDL_systhread_c.h"
+#include "SDL_thread.h"
 
-struct SDL_mutex
-{
-   RecursiveLock rl;
+struct SDL_mutex {
+  RecursiveLock rl;
 };
 
-/* vi: set ts=4 sw=4 expandtab: */
+/* clang-format -style=Google */

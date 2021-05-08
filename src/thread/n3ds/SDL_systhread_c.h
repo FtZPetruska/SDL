@@ -23,4 +23,4 @@
 
 typedef Thread SYS_ThreadHandle;
 
-/* vi: set ts=4 sw=4 expandtab: */
+/* clang-format -style=Google */

@@ -20,104 +20,94 @@
 */
 #include "../../SDL_internal.h"
 
+#ifdef SDL_THREAD_N3DS
+
 /* An implementation of semaphores using libctru's LightSemaphore */
 
 #include <3ds.h>
+
 #include "SDL_thread.h"
 
-struct SDL_semaphore
-{
-    LightSemaphore semaphore;
+struct SDL_semaphore {
+  LightSemaphore semaphore;
 };
 
-SDL_sem *
-SDL_CreateSemaphore(Uint32 initial_value)
-{
-    SDL_sem *sem;
+SDL_sem *SDL_CreateSemaphore(Uint32 initial_value) {
+  SDL_sem *sem;
 
-    sem = (SDL_sem *) SDL_malloc(sizeof(*sem));
-    if (!sem) {
-        SDL_OutOfMemory();
-        return NULL;
-    }
-    LightSemaphore_Init(&sem->semaphore, initial_value, 255);
+  sem = (SDL_sem *)SDL_malloc(sizeof(*sem));
+  if (!sem) {
+    SDL_OutOfMemory();
+    return NULL;
+  }
+  LightSemaphore_Init(&sem->semaphore, initial_value, 255);
 
-    return sem;
+  return sem;
 }
 
 /* WARNING:
    You cannot call this function when another thread is using the semaphore.
 */
-void
-SDL_DestroySemaphore(SDL_sem * sem)
-{
-    if (sem) {
-        SDL_free(sem);
-    }
+void SDL_DestroySemaphore(SDL_sem *sem) {
+  if (sem) {
+    SDL_free(sem);
+  }
 }
 
-int
-SDL_SemTryWait(SDL_sem * sem)
-{
-    if (!sem) {
-        return SDL_SetError("Passed a NULL semaphore");
-    }
+int SDL_SemTryWait(SDL_sem *sem) {
+  if (!sem) {
+    return SDL_SetError("Passed a NULL semaphore");
+  }
 
-    return SDL_SemWaitTimeout(sem, 0);
+  return SDL_SemWaitTimeout(sem, 0);
 }
 
-int
-SDL_SemWaitTimeout(SDL_sem * sem, Uint32 timeout)
-{
-    int retval;
+int SDL_SemWaitTimeout(SDL_sem *sem, Uint32 timeout) {
+  int retval;
 
-    if (!sem) {
-        return SDL_SetError("Passed a NULL semaphore");
-    }
+  if (!sem) {
+    return SDL_SetError("Passed a NULL semaphore");
+  }
 
-    if (timeout == SDL_MUTEX_MAXWAIT) {
-        LightSemaphore_Acquire(&sem->semaphore, 1);
-        retval = 0;
-    } else {
-        int return_code = LightSemaphore_TryAcquire(&sem->semaphore, 1);
-        if(return_code != 0) {
-            for(u32 i = 0; i < timeout; i++){
-                svcSleepThread(1000000LL);
-                return_code = LightSemaphore_TryAcquire(&sem->semaphore, 1);
-                if (return_code == 0) {
-                    break;
-                }
-            }
+  if (timeout == SDL_MUTEX_MAXWAIT) {
+    LightSemaphore_Acquire(&sem->semaphore, 1);
+    retval = 0;
+  } else {
+    int return_code = LightSemaphore_TryAcquire(&sem->semaphore, 1);
+    if (return_code != 0) {
+      for (u32 i = 0; i < timeout; i++) {
+        svcSleepThread(1000000LL);
+        return_code = LightSemaphore_TryAcquire(&sem->semaphore, 1);
+        if (return_code == 0) {
+          break;
         }
-        retval = return_code != 0 ? SDL_MUTEX_TIMEDOUT : 0;
+      }
     }
+    retval = return_code != 0 ? SDL_MUTEX_TIMEDOUT : 0;
+  }
 
-    return retval;
+  return retval;
 }
 
-int
-SDL_SemWait(SDL_sem * sem)
-{
-    return SDL_SemWaitTimeout(sem, SDL_MUTEX_MAXWAIT);
+int SDL_SemWait(SDL_sem *sem) {
+  return SDL_SemWaitTimeout(sem, SDL_MUTEX_MAXWAIT);
 }
 
-Uint32
-SDL_SemValue(SDL_sem * sem)
-{
-    if (!sem) {
-        return SDL_SetError("Passed a NULL semaphore");
-    }
-    return sem->semaphore.current_count;
+Uint32 SDL_SemValue(SDL_sem *sem) {
+  if (!sem) {
+    return SDL_SetError("Passed a NULL semaphore");
+  }
+  return sem->semaphore.current_count;
 }
 
-int
-SDL_SemPost(SDL_sem * sem)
-{
-    if (!sem) {
-        return SDL_SetError("Passed a NULL semaphore");
-    }
-    LightSemaphore_Release(&sem->semaphore, 1);
-    return 0;
+int SDL_SemPost(SDL_sem *sem) {
+  if (!sem) {
+    return SDL_SetError("Passed a NULL semaphore");
+  }
+  LightSemaphore_Release(&sem->semaphore, 1);
+  return 0;
 }
 
-/* vi: set ts=4 sw=4 expandtab: */
+#endif /* SDL_THREAD_N3DS */
+
+/* clang-format -style=Google */

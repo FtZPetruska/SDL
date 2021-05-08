@@ -20,20 +20,19 @@
 */
 
 #include "../../SDL_internal.h"
-#include "../SDL_thread_c.h"
+
+#ifdef SDL_THREAD_N3DS
 
 #include <3ds.h>
 
-SDL_TLSData *
-SDL_SYS_GetTLSData(void)
-{
-    return SDL_Generic_GetTLSData();
+#include "../SDL_thread_c.h"
+
+SDL_TLSData *SDL_SYS_GetTLSData(void) { return SDL_Generic_GetTLSData(); }
+
+int SDL_SYS_SetTLSData(SDL_TLSData *data) {
+  return SDL_Generic_SetTLSData(data);
 }
 
-int
-SDL_SYS_SetTLSData(SDL_TLSData *data)
-{
-    return SDL_Generic_SetTLSData(data);
-}
+#endif /* SDL_THREAD_N3DS */
 
-/* vi: set ts=4 sw=4 expandtab: */
+/* clang-format -style=Google */

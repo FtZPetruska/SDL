@@ -25,89 +25,83 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* System dependent filesystem routines                                */
 
-#include "SDL_error.h"
-#include "SDL_filesystem.h"
 #include <3ds.h>
 #include <sys/stat.h>
 
-char *
-SDL_GetBasePath(void)
-{
-    const char *basepath = "romfs:/";
-    char *retval = SDL_strdup(basepath);
-    return retval;
+#include "SDL_error.h"
+#include "SDL_filesystem.h"
+
+char *SDL_GetBasePath(void) {
+  const char *basepath = "romfs:/";
+  char *retval = SDL_strdup(basepath);
+  return retval;
 }
 
-char *
-SDL_GetPrefPath(const char *org, const char *app)
-{
-    if (!app)
-    {
-        SDL_InvalidParamError("app");
-        return NULL;
-    }
+char *SDL_GetPrefPath(const char *org, const char *app) {
+  if (!app) {
+    SDL_InvalidParamError("app");
+    return NULL;
+  }
 
-    fsInit();
-    FS_Archive sdmc_archive;
-    FSUSER_OpenArchive(&sdmc_archive, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, ""));
+  fsInit();
+  FS_Archive sdmc_archive;
+  FSUSER_OpenArchive(&sdmc_archive, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, ""));
 
-    struct stat file_stat;
-    int stat_code;
-    const char *base_folder = "/3ds/";
-    char *intermediate_result = NULL;
-    char *return_value = NULL;
-    size_t length = SDL_strlen(base_folder) + 1;
+  struct stat file_stat;
+  int stat_code;
+  const char *base_folder = "/3ds/";
+  char *intermediate_result = NULL;
+  char *return_value = NULL;
+  size_t length = SDL_strlen(base_folder) + 1;
 
-    stat_code = stat(base_folder, &file_stat);
-    if (stat_code == -1 || S_ISDIR(file_stat.st_mode))
-    {
-        FSUSER_CreateDirectory(sdmc_archive, fsMakePath(PATH_ASCII, base_folder), 0);
-    }
+  stat_code = stat(base_folder, &file_stat);
+  if (stat_code == -1 || S_ISDIR(file_stat.st_mode)) {
+    FSUSER_CreateDirectory(sdmc_archive, fsMakePath(PATH_ASCII, base_folder),
+                           0);
+  }
 
-    char *additional_sep = "/";
-    if (!org)
-    {
-        org = "";
-        additional_sep = "";
-    }
-    length += SDL_strlen(org) + 1;
-    intermediate_result = (char *)SDL_malloc(length);
-    if (!intermediate_result)
-    {
-        SDL_Log("Couldn't malloc an intermediate string of size %u\n", length);
-        SDL_OutOfMemory();
-        return NULL;
-    }
-    SDL_snprintf(intermediate_result, length, "%s%s%s", base_folder, org, additional_sep);
-    stat_code = stat(intermediate_result, &file_stat);
-    if (stat_code == -1 || S_ISDIR(file_stat.st_mode))
-    {
-        FSUSER_CreateDirectory(sdmc_archive, fsMakePath(PATH_ASCII, intermediate_result), 0);
-    }
+  char *additional_sep = "/";
+  if (!org) {
+    org = "";
+    additional_sep = "";
+  }
+  length += SDL_strlen(org) + 1;
+  intermediate_result = (char *)SDL_malloc(length);
+  if (!intermediate_result) {
+    SDL_Log("Couldn't malloc an intermediate string of size %u\n", length);
+    SDL_OutOfMemory();
+    return NULL;
+  }
+  SDL_snprintf(intermediate_result, length, "%s%s%s", base_folder, org,
+               additional_sep);
+  stat_code = stat(intermediate_result, &file_stat);
+  if (stat_code == -1 || S_ISDIR(file_stat.st_mode)) {
+    FSUSER_CreateDirectory(sdmc_archive,
+                           fsMakePath(PATH_ASCII, intermediate_result), 0);
+  }
 
-    length += SDL_strlen(app) + 1;
-    return_value = (char *)SDL_malloc(length);
-    if (!return_value)
-    {
-        SDL_Log("Couldn't malloc a result string of size %u\n", length);
-        SDL_OutOfMemory();
-        return NULL;
-    }
-    SDL_snprintf(return_value, length, "%s%s/", intermediate_result, app);
-    stat_code = stat(return_value, &file_stat);
-    if (stat_code == -1 || S_ISDIR(file_stat.st_mode))
-    {
-        FSUSER_CreateDirectory(sdmc_archive, fsMakePath(PATH_ASCII, return_value), 0);
-    }
-    
-    SDL_free(intermediate_result);
+  length += SDL_strlen(app) + 1;
+  return_value = (char *)SDL_malloc(length);
+  if (!return_value) {
+    SDL_Log("Couldn't malloc a result string of size %u\n", length);
+    SDL_OutOfMemory();
+    return NULL;
+  }
+  SDL_snprintf(return_value, length, "%s%s/", intermediate_result, app);
+  stat_code = stat(return_value, &file_stat);
+  if (stat_code == -1 || S_ISDIR(file_stat.st_mode)) {
+    FSUSER_CreateDirectory(sdmc_archive, fsMakePath(PATH_ASCII, return_value),
+                           0);
+  }
 
-    FSUSER_CloseArchive(sdmc_archive);
-    fsExit();
+  SDL_free(intermediate_result);
 
-    return return_value;
+  FSUSER_CloseArchive(sdmc_archive);
+  fsExit();
+
+  return return_value;
 }
 
 #endif /* SDL_FILESYSTEM_N3DS */
 
-/* vi: set ts=4 sw=4 expandtab: */
+/* clang-format -style=Google */

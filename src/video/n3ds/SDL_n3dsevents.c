@@ -20,30 +20,27 @@
 */
 #include "../../SDL_internal.h"
 
-#if SDL_VIDEO_DRIVER_N3DS
+#ifdef SDL_VIDEO_DRIVER_N3DS
 
 /* Pumping the events for the Home and Power button as well as touchscreen. */
 
 #include "../../events/SDL_events_c.h"
-
 #include "SDL_n3dsevents_c.h"
 #include "SDL_n3dsvideo.h"
 
-void N3DS_PumpEvents (_THIS)
-{
-    svcSleepThread (100000); // 0.1 ms
+void N3DS_PumpEvents(_THIS) {
+  svcSleepThread(100000);  // 0.1 ms
 
-    hidScanInput ();
-    u32 kDown = hidKeysDown ();
+  hidScanInput();
+  u32 kDown = hidKeysDown();
 
-    if (kDown & KEY_START)
-        {
-            SDL_Event sdlevent;
-            sdlevent.type = SDL_QUIT;
-            SDL_PushEvent (&sdlevent);
-        }
+  if (kDown & KEY_START) {
+    SDL_Event sdlevent;
+    sdlevent.type = SDL_QUIT;
+    SDL_PushEvent(&sdlevent);
+  }
 }
 
 #endif /* SDL_VIDEO_DRIVER_N3DS */
 
-/* clang-format -style={BasedOnStyle: GNU, IndentWidth: 4, ColumnLimit: 79} */
+/* clang-format -style=Google */

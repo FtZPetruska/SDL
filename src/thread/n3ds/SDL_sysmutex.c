@@ -20,78 +20,69 @@
 */
 #include "../../SDL_internal.h"
 
+#ifdef SDL_THREAD_N3DS
+
 /* An implementation of semaphores using libctru's RecursiveLock */
 
-#include <3ds.h>
-#include "SDL_thread.h"
 #include "SDL_systhread_c.h"
+#include "SDL_thread.h"
 
-
-struct SDL_mutex
-{
-    RecursiveLock lock;
+struct SDL_mutex {
+  RecursiveLock lock;
 };
 
 /* Create a mutex */
-SDL_mutex *
-SDL_CreateMutex(void)
-{
-    SDL_mutex *mutex;
+SDL_mutex *SDL_CreateMutex(void) {
+  SDL_mutex *mutex;
 
-    /* Allocate mutex memory */
-    mutex = (SDL_mutex *) SDL_malloc(sizeof(*mutex));
-    if (mutex) {
-        RecursiveLock_Init(&mutex->lock);
-    } else {
-        SDL_OutOfMemory();
-    }
-    return mutex;
+  /* Allocate mutex memory */
+  mutex = (SDL_mutex *)SDL_malloc(sizeof(*mutex));
+  if (mutex) {
+    RecursiveLock_Init(&mutex->lock);
+  } else {
+    SDL_OutOfMemory();
+  }
+  return mutex;
 }
 
 /* Free the mutex */
-void
-SDL_DestroyMutex(SDL_mutex * mutex)
-{
-    if (mutex) {
-        SDL_free(mutex);
-    }
+void SDL_DestroyMutex(SDL_mutex *mutex) {
+  if (mutex) {
+    SDL_free(mutex);
+  }
 }
 
 /* Lock the mutex */
-int
-SDL_LockMutex(SDL_mutex * mutex)
-{
-    if (mutex == NULL) {
-        return SDL_SetError("Passed a NULL mutex");
-    }
+int SDL_LockMutex(SDL_mutex *mutex) {
+  if (mutex == NULL) {
+    return SDL_SetError("Passed a NULL mutex");
+  }
 
-    RecursiveLock_Lock(&mutex->lock);
+  RecursiveLock_Lock(&mutex->lock);
 
-    return 0;
+  return 0;
 }
 
 /* try Lock the mutex */
-int
-SDL_TryLockMutex(SDL_mutex * mutex)
-{
-    if (mutex == NULL) {
-        return SDL_SetError("Passed a NULL mutex");
-    }
+int SDL_TryLockMutex(SDL_mutex *mutex) {
+  if (mutex == NULL) {
+    return SDL_SetError("Passed a NULL mutex");
+  }
 
-    return RecursiveLock_TryLock(&mutex->lock);
+  return RecursiveLock_TryLock(&mutex->lock);
 }
 
 /* Unlock the mutex */
-int
-SDL_mutexV(SDL_mutex * mutex)
-{
-    if (mutex == NULL) {
-        return SDL_SetError("Passed a NULL mutex");
-    }
+int SDL_mutexV(SDL_mutex *mutex) {
+  if (mutex == NULL) {
+    return SDL_SetError("Passed a NULL mutex");
+  }
 
-    RecursiveLock_Unlock(&mutex->lock);
+  RecursiveLock_Unlock(&mutex->lock);
 
-    return 0;
+  return 0;
 }
 
-/* vi: set ts=4 sw=4 expandtab: */
+#endif /* SDL_THREAD_N3DS */
+
+/* clang-format -style=Google */

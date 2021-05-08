@@ -20,80 +20,76 @@
 */
 #include "../../SDL_internal.h"
 
+#ifdef SDL_THREAD_N3DS
+
 /* Thread management routines for SDL */
 
-#include "SDL_thread.h"
 #include "../SDL_systhread.h"
+#include "SDL_thread.h"
 
 static const size_t DEFAULT_STACK_SIZE = (128 * 1024);
 
-static void ThreadEntry(void *arg)
-{
-	SDL_RunThread((SDL_Thread *) arg);
-}
+static void ThreadEntry(void *arg) { SDL_RunThread((SDL_Thread *)arg); }
 
 #ifdef SDL_PASSED_BEGINTHREAD_ENDTHREAD
-int
-SDL_SYS_CreateThread(SDL_Thread * thread,
-                     pfnSDL_CurrentBeginThread pfnBeginThread,
-                     pfnSDL_CurrentEndThread pfnEndThread)
+int SDL_SYS_CreateThread(SDL_Thread *thread,
+                         pfnSDL_CurrentBeginThread pfnBeginThread,
+                         pfnSDL_CurrentEndThread pfnEndThread)
 #else
-int
-SDL_SYS_CreateThread(SDL_Thread * thread)
+int SDL_SYS_CreateThread(SDL_Thread *thread)
 #endif /* SDL_PASSED_BEGINTHREAD_ENDTHREAD */
 {
-    //	s32 priority = 0x2F;
-	s32 priority = 0x30;
-    
-	/* Set priority of new thread higher than the current thread */
-	svcGetThreadPriority(&priority, CUR_THREAD_HANDLE);
-	if(priority>0x19) priority--;
-	else priority = 0x19; //priority 0x18 is for video thread that is activated by a signal and than must run at maximum priority to avoid flickering
-	if(priority>0x2F) priority = 0x2F;
+  /* Set default priority if svcGetThreadPriority fails */
+  s32 priority = 0x30;
 
-    size_t stack_size = thread->stacksize ? thread->stacksize : DEFAULT_STACK_SIZE;
+  /* Set priority of new thread higher than the current thread */
+  svcGetThreadPriority(&priority, CUR_THREAD_HANDLE);
 
-	thread->handle = threadCreate(ThreadEntry, thread,
-		stack_size, priority, -2, false);
+  /* priority 0x18 is for video thread that is activated by a signal and than
+   * must run at maximum priority to avoid flickering. On the other hand,
+   * priority 0x30 is the default priority for the main thread and the
+   * minimum priority, so 0x2F is the minimum priority given.
+   **/
+  if (priority > 0x19) {
+    priority--;
+  } else {
+    priority = 0x19;
+  }
+  if (priority > 0x2F) {
+    priority = 0x2F;
+  }
 
-    if(!thread->handle) 
-    {
-        return SDL_SetError("Couldn't create thread");
-    }
+  size_t stack_size =
+      thread->stacksize ? thread->stacksize : DEFAULT_STACK_SIZE;
 
-    return 0;
+  thread->handle =
+      threadCreate(ThreadEntry, thread, stack_size, priority, -2, false);
+
+  if (!thread->handle) {
+    return SDL_SetError("Couldn't create thread");
+  }
+
+  return 0;
 }
 
-void
-SDL_SYS_SetupThread(const char *name)
-{
-    return;
+void SDL_SYS_SetupThread(const char *name) { return; }
+
+SDL_threadID SDL_ThreadID(void) {
+  u32 thread_ID = 0;
+  svcGetThreadId(&thread_ID, CUR_THREAD_HANDLE);
+  return (SDL_threadID)thread_ID;
 }
 
-SDL_threadID
-SDL_ThreadID(void)
-{
-    u32 thread_ID = 0;
-    svcGetThreadId(&thread_ID, CUR_THREAD_HANDLE);
-    return (SDL_threadID)thread_ID;
+int SDL_SYS_SetThreadPriority(SDL_ThreadPriority priority) {
+  return (int)svcSetThreadPriority(CUR_THREAD_HANDLE, priority);
 }
 
-int
-SDL_SYS_SetThreadPriority(SDL_ThreadPriority priority)
-{
-    return (int)svcSetThreadPriority(CUR_THREAD_HANDLE, priority);
+void SDL_SYS_WaitThread(SDL_Thread *thread) {
+  threadJoin(thread->handle, U64_MAX);
 }
 
-void
-SDL_SYS_WaitThread(SDL_Thread * thread)
-{
-    threadJoin(thread->handle, U64_MAX);
-}
+void SDL_SYS_DetachThread(SDL_Thread *thread) { threadDetach(thread->handle); }
 
-void
-SDL_SYS_DetachThread(SDL_Thread * thread)
-{
-    threadDetach(thread->handle);
-}
+#endif /* SDL_THREAD_N3DS */
 
-/* vi: set ts=4 sw=4 expandtab: */
+/* clang-format -style=Google */

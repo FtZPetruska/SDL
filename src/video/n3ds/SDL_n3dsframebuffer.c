@@ -20,70 +20,69 @@
 */
 #include "../../SDL_internal.h"
 
-#if SDL_VIDEO_DRIVER_N3DS
+#ifdef SDL_VIDEO_DRIVER_N3DS
 
 #include "../SDL_sysvideo.h"
 #include "SDL_n3dsframebuffer_c.h"
 
+#define N3DS_SURFACE "_SDL_n3dsSurface"
 
-#define N3DS_SURFACE   "_SDL_n3dsSurface"
+int SDL_N3DS_CreateWindowFramebuffer(_THIS, SDL_Window *window, Uint32 *format,
+                                     void **pixels, int *pitch) {
+  SDL_Surface *surface;
+  const Uint32 surface_format = SDL_PIXELFORMAT_ARGB8888;
+  int w, h;
+  int bpp;
+  Uint32 Rmask, Gmask, Bmask, Amask;
 
-int SDL_N3DS_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format, void ** pixels, int *pitch)
-{
-    SDL_Surface *surface;
-    const Uint32 surface_format = SDL_PIXELFORMAT_ARGB8888;
-    int w, h;
-    int bpp;
-    Uint32 Rmask, Gmask, Bmask, Amask;
+  /* Free the old framebuffer surface */
+  surface = (SDL_Surface *)SDL_GetWindowData(window, N3DS_SURFACE);
+  SDL_FreeSurface(surface);
 
-    /* Free the old framebuffer surface */
-    surface = (SDL_Surface *) SDL_GetWindowData(window, N3DS_SURFACE);
-    SDL_FreeSurface(surface);
+  /* Create a new one */
+  SDL_PixelFormatEnumToMasks(surface_format, &bpp, &Rmask, &Gmask, &Bmask,
+                             &Amask);
+  SDL_GetWindowSize(window, &w, &h);
+  surface = SDL_CreateRGBSurface(0, w, h, bpp, Rmask, Gmask, Bmask, Amask);
+  if (!surface) {
+    return -1;
+  }
 
-    /* Create a new one */
-    SDL_PixelFormatEnumToMasks(surface_format, &bpp, &Rmask, &Gmask, &Bmask, &Amask);
-    SDL_GetWindowSize(window, &w, &h);
-    surface = SDL_CreateRGBSurface(0, w, h, bpp, Rmask, Gmask, Bmask, Amask);
-    if (!surface) {
-        return -1;
-    }
-
-    /* Save the info and return! */
-    SDL_SetWindowData(window, N3DS_SURFACE, surface);
-    *format = surface_format;
-    *pixels = surface->pixels;
-    *pitch = surface->pitch;
-    return 0;
+  /* Save the info and return! */
+  SDL_SetWindowData(window, N3DS_SURFACE, surface);
+  *format = surface_format;
+  *pixels = surface->pixels;
+  *pitch = surface->pitch;
+  return 0;
 }
 
-int SDL_N3DS_UpdateWindowFramebuffer(_THIS, SDL_Window * window, const SDL_Rect * rects, int numrects)
-{
-    static int frame_number;
-    SDL_Surface *surface;
+int SDL_N3DS_UpdateWindowFramebuffer(_THIS, SDL_Window *window,
+                                     const SDL_Rect *rects, int numrects) {
+  static int frame_number;
+  SDL_Surface *surface;
 
-    surface = (SDL_Surface *) SDL_GetWindowData(window, N3DS_SURFACE);
-    if (!surface) {
-        return SDL_SetError("Couldn't find dummy surface for window");
-    }
+  surface = (SDL_Surface *)SDL_GetWindowData(window, N3DS_SURFACE);
+  if (!surface) {
+    return SDL_SetError("Couldn't find dummy surface for window");
+  }
 
-    /* Send the data to the display */
-    if (SDL_getenv("SDL_VIDEO_N3DS_SAVE_FRAMES")) {
-        char file[128];
-        SDL_snprintf(file, sizeof(file), "SDL_window%" SDL_PRIu32 "-%8.8d.bmp",
-                     SDL_GetWindowID(window), ++frame_number);
-        SDL_SaveBMP(surface, file);
-    }
-    return 0;
+  /* Send the data to the display */
+  if (SDL_getenv("SDL_VIDEO_N3DS_SAVE_FRAMES")) {
+    char file[128];
+    SDL_snprintf(file, sizeof(file), "SDL_window%" SDL_PRIu32 "-%8.8d.bmp",
+                 SDL_GetWindowID(window), ++frame_number);
+    SDL_SaveBMP(surface, file);
+  }
+  return 0;
 }
 
-void SDL_N3DS_DestroyWindowFramebuffer(_THIS, SDL_Window * window)
-{
-    SDL_Surface *surface;
+void SDL_N3DS_DestroyWindowFramebuffer(_THIS, SDL_Window *window) {
+  SDL_Surface *surface;
 
-    surface = (SDL_Surface *) SDL_SetWindowData(window, N3DS_SURFACE, NULL);
-    SDL_FreeSurface(surface);
+  surface = (SDL_Surface *)SDL_SetWindowData(window, N3DS_SURFACE, NULL);
+  SDL_FreeSurface(surface);
 }
 
 #endif /* SDL_VIDEO_DRIVER_N3DS */
 
-/* vi: set ts=4 sw=4 expandtab: */
+/* clang-format -style=Google */

@@ -20,60 +20,41 @@
 */
 #include "../../SDL_internal.h"
 
-#if defined(SDL_TIMER_N3DS)
+#ifdef SDL_TIMER_N3DS
+
+#include <3ds.h>
 
 #include "SDL_timer.h"
-#include <3ds.h>
 
 static SDL_bool ticks_started = SDL_FALSE;
 static u64 start_tick;
 
-void
-SDL_TicksInit(void)
-{
-    if (ticks_started) {
-        return;
-    }
-    ticks_started = SDL_TRUE;
+void SDL_TicksInit(void) {
+  if (ticks_started) {
+    return;
+  }
+  ticks_started = SDL_TRUE;
 
-    start_tick = svcGetSystemTick();
+  start_tick = svcGetSystemTick();
 }
 
-void
-SDL_TicksQuit(void)
-{
-    ticks_started = SDL_FALSE;
+void SDL_TicksQuit(void) { ticks_started = SDL_FALSE; }
+
+Uint32 SDL_GetTicks(void) {
+  if (!ticks_started) {
+    SDL_TicksInit();
+  }
+
+  u64 elapsed = svcGetSystemTick() - start_tick;
+  return elapsed * 1000 / SYSCLOCK_ARM11;
 }
 
-Uint32
-SDL_GetTicks(void)
-{
-    if (!ticks_started) {
-        SDL_TicksInit();
-    }
+Uint64 SDL_GetPerformanceCounter(void) { return SDL_GetTicks(); }
 
-    u64 elapsed = svcGetSystemTick() - start_tick;
-    return elapsed * 1000 / SYSCLOCK_ARM11;
-}
+Uint64 SDL_GetPerformanceFrequency(void) { return SYSCLOCK_ARM11; }
 
-Uint64
-SDL_GetPerformanceCounter(void)
-{
-    return SDL_GetTicks();
-}
-
-Uint64
-SDL_GetPerformanceFrequency(void)
-{
-    return SYSCLOCK_ARM11;
-}
-
-void
-SDL_Delay(Uint32 ms)
-{
-    svcSleepThread((u64)ms * 1000000ULL);
-}
+void SDL_Delay(Uint32 ms) { svcSleepThread((u64)ms * 1000000ULL); }
 
 #endif /* SDL_TIMER_N3DS */
 
-/* vi: set ts=4 sw=4 expandtab: */
+/* clang-format -style=Google */

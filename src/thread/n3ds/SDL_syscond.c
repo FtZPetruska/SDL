@@ -22,7 +22,7 @@
 
 #ifdef SDL_THREAD_N3DS
 
-/* An implementation of semaphores using libctru's CondVar */
+/* An implementation of condition variables using libctru's CondVar */
 
 #include "SDL_sysmutex_c.h"
 #include "SDL_thread.h"

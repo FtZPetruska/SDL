@@ -22,7 +22,7 @@
 
 #ifdef SDL_THREAD_N3DS
 
-/* An implementation of semaphores using libctru's RecursiveLock */
+/* An implementation of mutexes using libctru's RecursiveLock */
 
 #include "SDL_systhread_c.h"
 #include "SDL_thread.h"

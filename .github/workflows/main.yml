@@ -189,7 +189,8 @@ jobs:
       run: |
         cmake -S cmake/test -B cmake_config_build -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_PREFIX_PATH=${{ env.SDL2_DIR }}
+          -DCMAKE_PREFIX_PATH=${{ env.SDL2_DIR }} \
+          ${{ matrix.platform.cmake-flags }}
         cmake --build cmake_config_build --verbose
     - name: Distcheck (Autotools)
       if: matrix.platform.autotools
